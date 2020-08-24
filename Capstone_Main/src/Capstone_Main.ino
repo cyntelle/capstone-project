@@ -15,7 +15,7 @@
  * Author: Ted Fites & Cyntelle Renteria
  * Date: 8/23/20
  * Modifications:
- * 8/23/20  CR Created program
+ * 8/23/20  CR Created program + added MQ9 function (not tested)
  * 
  */
 
