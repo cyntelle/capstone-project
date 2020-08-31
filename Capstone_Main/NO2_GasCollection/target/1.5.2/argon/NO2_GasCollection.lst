@@ -7,35 +7,35 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   1 .dynalib      00000004  000d4018  000d4018  00004018  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  2 .text         00001bd4  000d401c  000d401c  0000401c  2**2
+  2 .text         00001be4  000d401c  000d401c  0000401c  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  3 .backup       00000004  2003f400  000d5bf0  0000f400  2**2
+  3 .backup       00000004  2003f400  000d5c00  0000f400  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  4 .data         00000068  2003e350  000d5bf4  0001e350  2**2
+  4 .data         00000068  2003e350  000d5c04  0001e350  2**2
                   CONTENTS, ALLOC, LOAD, DATA
   5 .bss          00000438  2003e3b8  2003e3b8  0002e3b8  2**2
                   ALLOC
-  6 .module_info_suffix 00000028  000d5c5c  000d5c5c  00025c5c  2**0
+  6 .module_info_suffix 00000028  000d5c6c  000d5c6c  00025c6c  2**0
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  7 .module_info_crc 00000004  000d5c84  000d5c84  00025c84  2**0
+  7 .module_info_crc 00000004  000d5c94  000d5c94  00025c94  2**0
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  8 .debug_info   000c0839  00000000  00000000  00025c88  2**0
+  8 .debug_info   000c0839  00000000  00000000  00025c98  2**0
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_abbrev 0000f0a0  00000000  00000000  000e64c1  2**0
+  9 .debug_abbrev 0000f0a0  00000000  00000000  000e64d1  2**0
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_loc    00019b78  00000000  00000000  000f5561  2**0
+ 10 .debug_loc    00019b78  00000000  00000000  000f5571  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_aranges 00002148  00000000  00000000  0010f0d9  2**0
+ 11 .debug_aranges 00002148  00000000  00000000  0010f0e9  2**0
                   CONTENTS, READONLY, DEBUGGING
- 12 .debug_ranges 00003ef8  00000000  00000000  00111221  2**0
+ 12 .debug_ranges 00003ef8  00000000  00000000  00111231  2**0
                   CONTENTS, READONLY, DEBUGGING
- 13 .debug_macro  000326d2  00000000  00000000  00115119  2**0
+ 13 .debug_macro  000326d2  00000000  00000000  00115129  2**0
                   CONTENTS, READONLY, DEBUGGING
- 14 .debug_line   00023523  00000000  00000000  001477eb  2**0
+ 14 .debug_line   00023523  00000000  00000000  001477fb  2**0
                   CONTENTS, READONLY, DEBUGGING
- 15 .debug_str    000ffcef  00000000  00000000  0016ad0e  2**0
+ 15 .debug_str    000ffcf5  00000000  00000000  0016ad1e  2**0
                   CONTENTS, READONLY, DEBUGGING
- 16 .debug_frame  0000c1bc  00000000  00000000  0026aa00  2**2
+ 16 .debug_frame  0000c1bc  00000000  00000000  0026aa14  2**2
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -81,7 +81,7 @@ void* module_user_pre_init() {
    d4040:	bd08      	pop	{r3, pc}
    d4042:	bf00      	nop
    d4044:	2003e350 	.word	0x2003e350
-   d4048:	000d5bf4 	.word	0x000d5bf4
+   d4048:	000d5c04 	.word	0x000d5c04
    d404c:	2003e3b8 	.word	0x2003e3b8
    d4050:	2003e3b8 	.word	0x2003e3b8
    d4054:	2003e7f0 	.word	0x2003e7f0
@@ -126,8 +126,8 @@ void module_user_init()
 }
    d4078:	bd70      	pop	{r4, r5, r6, pc}
    d407a:	bf00      	nop
-   d407c:	000d5bec 	.word	0x000d5bec
-   d4080:	000d5bb4 	.word	0x000d5bb4
+   d407c:	000d5bf4 	.word	0x000d5bf4
+   d4080:	000d5bbc 	.word	0x000d5bbc
 
 000d4084 <module_user_setup>:
 
@@ -227,7 +227,7 @@ class SystemClass {
 	...
 
 000d40c8 <setup>:
-float PPMconc=0.0;
+float NO2PPMconc=0.0;  // Stores calculated NO2 gas concentration from sensor readings
 
 // setup() runs once, when the device is first turned on.
 SYSTEM_MODE(SEMI_AUTOMATIC);
@@ -275,7 +275,7 @@ void M03_GetGasConcentration_MakerIO_FINAL()
   Serial.printf("\nM03_GetGasConcentration_MakerIO-FINAL\n");
    d410a:	f000 fcdb 	bl	d4ac4 <_Z16_fetch_usbserialv>
 // 1) read and accumulate the test analog in values:
-  sensorValue = 0;
+  NO2SensorValue = 0;
    d410e:	4c21      	ldr	r4, [pc, #132]	; (d4194 <_Z37M03_GetGasConcentration_MakerIO_FINALv+0x8c>)
 void M03_GetGasConcentration_MakerIO_FINAL()
 {
@@ -286,7 +286,7 @@ void M03_GetGasConcentration_MakerIO_FINAL()
    d4110:	4921      	ldr	r1, [pc, #132]	; (d4198 <_Z37M03_GetGasConcentration_MakerIO_FINALv+0x90>)
    d4112:	f7ff ffd4 	bl	d40be <_ZN5Print6printfIIEEEjPKcDpT_>
 // 1) read and accumulate the test analog in values:
-  sensorValue = 0;
+  NO2SensorValue = 0;
    d4116:	2300      	movs	r3, #0
    d4118:	6023      	str	r3, [r4, #0]
    d411a:	f44f 7580 	mov.w	r5, #256	; 0x100
@@ -295,7 +295,7 @@ void M03_GetGasConcentration_MakerIO_FINAL()
     * accurately reduce input sensor reading dur to ladder. This will make low sensor readings
     * more accurate.
     */
-    sensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
+    NO2SensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
    d411e:	200e      	movs	r0, #14
    d4120:	f000 ff90 	bl	d5044 <analogRead>
    d4124:	f46f 73bb 	mvn.w	r3, #374	; 0x176
@@ -310,7 +310,7 @@ void M03_GetGasConcentration_MakerIO_FINAL()
     * accurately reduce input sensor reading dur to ladder. This will make low sensor readings
     * more accurate.
     */
-    sensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
+    NO2SensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
    d4132:	6023      	str	r3, [r4, #0]
     delay(3);   // needs 2 ms for the analog-to-digital converter to settle after the last reading
    d4134:	f000 fb44 	bl	d47c0 <delay>
@@ -318,37 +318,37 @@ void M03_GetGasConcentration_MakerIO_FINAL()
 
   Serial.printf("\nM03_GetGasConcentration_MakerIO-FINAL\n");
 // 1) read and accumulate the test analog in values:
-  sensorValue = 0;
+  NO2SensorValue = 0;
   for (int i = 0; i < SMPL_SIZE; i++) 
    d4138:	3d01      	subs	r5, #1
    d413a:	d1f0      	bne.n	d411e <_Z37M03_GetGasConcentration_MakerIO_FINALv+0x16>
     * more accurate.
     */
-    sensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
+    NO2SensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
     delay(3);   // needs 2 ms for the analog-to-digital converter to settle after the last reading
   }
-  Serial.printf(" TOTAL: sensorValue >%i\n", sensorValue);
+  Serial.printf(" TOTAL: NO2SensorValue >%i\n", NO2SensorValue);
    d413c:	f000 fcc2 	bl	d4ac4 <_Z16_fetch_usbserialv>
    d4140:	6832      	ldr	r2, [r6, #0]
    d4142:	4916      	ldr	r1, [pc, #88]	; (d419c <_Z37M03_GetGasConcentration_MakerIO_FINALv+0x94>)
 
  // 2) print the PPM results to the serial monitor:
-  rawInput = (float) sensorValue / (float) SMPL_SIZE / CONTROLLER_RESOLUTION;
+  rawInput = (float) NO2SensorValue / (float) SMPL_SIZE / CONTROLLER_RESOLUTION;
   calc_nA =  V_REF/ (float) R1_VALUE * NANO_AMPS; // I=V/R * nanoAmps
-  PPMconc = (float) rawInput * calc_nA / S_F;
+  NO2PPMconc = (float) rawInput * calc_nA / S_F;
    d4144:	4c16      	ldr	r4, [pc, #88]	; (d41a0 <_Z37M03_GetGasConcentration_MakerIO_FINALv+0x98>)
     * more accurate.
     */
-    sensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
+    NO2SensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
     delay(3);   // needs 2 ms for the analog-to-digital converter to settle after the last reading
   }
-  Serial.printf(" TOTAL: sensorValue >%i\n", sensorValue);
+  Serial.printf(" TOTAL: NO2SensorValue >%i\n", NO2SensorValue);
    d4146:	f7ff ffd9 	bl	d40fc <_ZN5Print6printfIIlEEEjPKcDpT_>
 
  // 2) print the PPM results to the serial monitor:
-  rawInput = (float) sensorValue / (float) SMPL_SIZE / CONTROLLER_RESOLUTION;
+  rawInput = (float) NO2SensorValue / (float) SMPL_SIZE / CONTROLLER_RESOLUTION;
   calc_nA =  V_REF/ (float) R1_VALUE * NANO_AMPS; // I=V/R * nanoAmps
-  PPMconc = (float) rawInput * calc_nA / S_F;
+  NO2PPMconc = (float) rawInput * calc_nA / S_F;
    d414a:	edd6 7a00 	vldr	s15, [r6]
    d414e:	ed9f 7a15 	vldr	s14, [pc, #84]	; d41a4 <_Z37M03_GetGasConcentration_MakerIO_FINALv+0x9c>
    d4152:	eddf 6a15 	vldr	s13, [pc, #84]	; d41a8 <_Z37M03_GetGasConcentration_MakerIO_FINALv+0xa0>
@@ -358,7 +358,7 @@ void M03_GetGasConcentration_MakerIO_FINAL()
    d4162:	ee67 7a87 	vmul.f32	s15, s15, s14
    d4166:	ee87 7aa6 	vdiv.f32	s14, s15, s13
    d416a:	ed84 7a00 	vstr	s14, [r4]
-  Serial.printf("PPM >%0.2f\n",PPMconc);
+  Serial.printf("PPM >%0.2f\n",NO2PPMconc);
    d416e:	f000 fca9 	bl	d4ac4 <_Z16_fetch_usbserialv>
    d4172:	4606      	mov	r6, r0
    d4174:	6820      	ldr	r0, [r4, #0]
@@ -376,20 +376,20 @@ void M03_GetGasConcentration_MakerIO_FINAL()
    d418a:	b002      	add	sp, #8
    d418c:	e8bd 4070 	ldmia.w	sp!, {r4, r5, r6, lr}
   calc_nA =  V_REF/ (float) R1_VALUE * NANO_AMPS; // I=V/R * nanoAmps
-  PPMconc = (float) rawInput * calc_nA / S_F;
-  Serial.printf("PPM >%0.2f\n",PPMconc);
+  NO2PPMconc = (float) rawInput * calc_nA / S_F;
+  Serial.printf("PPM >%0.2f\n",NO2PPMconc);
    
  //Trying to make each loop 1 second
   delay(218);  //1 second – 3ms*256ms (each adc read)-14ms (for printing)= 218ms
    d4190:	f000 bb16 	b.w	d47c0 <delay>
    d4194:	2003e3cc 	.word	0x2003e3cc
-   d4198:	000d58ac 	.word	0x000d58ac
+   d4198:	000d58b2 	.word	0x000d58b2
    d419c:	000d582a 	.word	0x000d582a
-   d41a0:	2003e3bc 	.word	0x2003e3bc
+   d41a0:	2003e3c8 	.word	0x2003e3c8
    d41a4:	39800000 	.word	0x39800000
    d41a8:	3fb33333 	.word	0x3fb33333
    d41ac:	48a61dc5 	.word	0x48a61dc5
-   d41b0:	000d58a0 	.word	0x000d58a0
+   d41b0:	000d58a6 	.word	0x000d58a6
 
 000d41b4 <loop>:
 void loop() 
@@ -400,8 +400,8 @@ void loop()
   M03_GetGasConcentration_MakerIO_FINAL();
    d41b4:	f7ff bfa8 	b.w	d4108 <_Z37M03_GetGasConcentration_MakerIO_FINALv>
 
-000d41b8 <_GLOBAL__sub_I_sensorValue>:
-  Serial.printf("PPM >%0.2f\n",PPMconc);
+000d41b8 <_GLOBAL__sub_I_NO2SensorValue>:
+  Serial.printf("PPM >%0.2f\n",NO2PPMconc);
    
  //Trying to make each loop 1 second
   delay(218);  //1 second – 3ms*256ms (each adc read)-14ms (for printing)= 218ms
@@ -413,7 +413,7 @@ public:
     SystemSleepResult()
             : wakeupSource_(nullptr),
               error_(SYSTEM_ERROR_NONE) {
-   d41ba:	4c0a      	ldr	r4, [pc, #40]	; (d41e4 <_GLOBAL__sub_I_sensorValue+0x2c>)
+   d41ba:	4c0a      	ldr	r4, [pc, #40]	; (d41e4 <_GLOBAL__sub_I_NO2SensorValue+0x2c>)
 
 inline void pinSetFast(pin_t _pin) __attribute__((always_inline));
 inline void pinResetFast(pin_t _pin) __attribute__((always_inline));
@@ -455,28 +455,28 @@ public:
         set_system_mode(mode);
    d41d2:	f000 f93d 	bl	d4450 <set_system_mode>
 
-long int sensorValue = 0;        // ORIGINAL value read from the sensor
-float PPMconc=0.0;
+long int NO2SensorValue = 0;        // ORIGINAL value read from the sensor
+float NO2PPMconc=0.0;  // Stores calculated NO2 gas concentration from sensor readings
 
 // setup() runs once, when the device is first turned on.
 SYSTEM_MODE(SEMI_AUTOMATIC);
    d41d6:	4620      	mov	r0, r4
-   d41d8:	4a03      	ldr	r2, [pc, #12]	; (d41e8 <_GLOBAL__sub_I_sensorValue+0x30>)
-   d41da:	4904      	ldr	r1, [pc, #16]	; (d41ec <_GLOBAL__sub_I_sensorValue+0x34>)
-  Serial.printf("PPM >%0.2f\n",PPMconc);
+   d41d8:	4a03      	ldr	r2, [pc, #12]	; (d41e8 <_GLOBAL__sub_I_NO2SensorValue+0x30>)
+   d41da:	4904      	ldr	r1, [pc, #16]	; (d41ec <_GLOBAL__sub_I_NO2SensorValue+0x34>)
+  Serial.printf("PPM >%0.2f\n",NO2PPMconc);
    
  //Trying to make each loop 1 second
   delay(218);  //1 second – 3ms*256ms (each adc read)-14ms (for printing)= 218ms
   return;
    d41dc:	e8bd 4010 	ldmia.w	sp!, {r4, lr}
 
-long int sensorValue = 0;        // ORIGINAL value read from the sensor
-float PPMconc=0.0;
+long int NO2SensorValue = 0;        // ORIGINAL value read from the sensor
+float NO2PPMconc=0.0;  // Stores calculated NO2 gas concentration from sensor readings
 
 // setup() runs once, when the device is first turned on.
 SYSTEM_MODE(SEMI_AUTOMATIC);
    d41e0:	f000 bf88 	b.w	d50f4 <__aeabi_atexit>
-   d41e4:	2003e3c0 	.word	0x2003e3c0
+   d41e4:	2003e3bc 	.word	0x2003e3bc
    d41e8:	2003e3b8 	.word	0x2003e3b8
    d41ec:	000d40af 	.word	0x000d40af
 
@@ -1289,7 +1289,7 @@ public:
    d45e8:	601a      	str	r2, [r3, #0]
    d45ea:	4770      	bx	lr
    d45ec:	2003e3d0 	.word	0x2003e3d0
-   d45f0:	000d58dc 	.word	0x000d58dc
+   d45f0:	000d58e4 	.word	0x000d58e4
 
 000d45f4 <_ZN8SPIClassC1E17HAL_SPI_Interface>:
     }
@@ -1805,7 +1805,7 @@ inline spark::Logger::Logger(const char *name) :
    d47a0:	601a      	str	r2, [r3, #0]
    d47a2:	4770      	bx	lr
    d47a4:	2003e3e8 	.word	0x2003e3e8
-   d47a8:	000d597b 	.word	0x000d597b
+   d47a8:	000d5983 	.word	0x000d5983
 
 000d47ac <_GLOBAL__sub_I_TIME_FORMAT_DEFAULT>:
             calendar_time_cache = Convert_UnixTime_To_CalendarTime(unix_time);
@@ -1991,7 +1991,7 @@ void system_initialize_user_backup_ram()
    d4858:	f000 bf7c 	b.w	d5754 <memcpy>
    d485c:	2003f400 	.word	0x2003f400
    d4860:	2003f404 	.word	0x2003f404
-   d4864:	000d5bf0 	.word	0x000d5bf0
+   d4864:	000d5c00 	.word	0x000d5c00
 
 000d4868 <_Z27ctrl_request_custom_handlerP12ctrl_request>:
 bool __backup_ram_was_valid() { return false; }
@@ -2295,7 +2295,7 @@ IPAddress::IPAddress()
    d4996:	4620      	mov	r0, r4
    d4998:	bd10      	pop	{r4, pc}
    d499a:	bf00      	nop
-   d499c:	000d5a1c 	.word	0x000d5a1c
+   d499c:	000d5a24 	.word	0x000d5a24
 
 000d49a0 <_ZN9IPAddressC1ERK16_HAL_IPAddress_t>:
 
@@ -2315,7 +2315,7 @@ IPAddress::IPAddress(const HAL_IPAddress& address)
    d49bc:	701a      	strb	r2, [r3, #0]
 }
    d49be:	bd10      	pop	{r4, pc}
-   d49c0:	000d5a1c 	.word	0x000d5a1c
+   d49c0:	000d5a24 	.word	0x000d5a24
 
 000d49c4 <_ZN9IPAddress8set_ipv4Ehhhh>:
     return address.ipv4!=0;
@@ -2545,7 +2545,7 @@ USBSerial::USBSerial(HAL_USB_USART_Serial serial, const HAL_USB_USART_Config& co
 }
    d4a98:	4620      	mov	r0, r4
    d4a9a:	bd10      	pop	{r4, pc}
-   d4a9c:	000d5a30 	.word	0x000d5a30
+   d4a9c:	000d5a38 	.word	0x000d5a38
 
 000d4aa0 <_ZN9USBSerial5beginEl>:
 // Public methods
@@ -2826,7 +2826,7 @@ USARTSerial::USARTSerial(HAL_USART_Serial serial, Ring_Buffer *rx_buffer, Ring_B
    d4bb6:	4620      	mov	r0, r4
    d4bb8:	bd10      	pop	{r4, pc}
    d4bba:	bf00      	nop
-   d4bbc:	000d5a60 	.word	0x000d5a60
+   d4bbc:	000d5a68 	.word	0x000d5a68
 
 000d4bc0 <_ZN11USARTSerial9isEnabledEv>:
 USARTSerial::operator bool() {
@@ -3025,7 +3025,7 @@ TwoWire::TwoWire(HAL_I2C_Interface i2c, const HAL_I2C_Config& conf)
 }
    d4c88:	4620      	mov	r0, r4
    d4c8a:	bd10      	pop	{r4, pc}
-   d4c8c:	000d5a90 	.word	0x000d5a90
+   d4c8c:	000d5a98 	.word	0x000d5a98
 
 000d4c90 <_ZN7TwoWire9isEnabledEv>:
   HAL_I2C_Set_Callback_On_Request(_i2c, function, NULL);
@@ -3399,7 +3399,7 @@ class MeshClass : public NetworkClass, public MeshPublish {
    d4dba:	4620      	mov	r0, r4
    d4dbc:	bd10      	pop	{r4, pc}
    d4dbe:	bf00      	nop
-   d4dc0:	000d5ab8 	.word	0x000d5ab8
+   d4dc0:	000d5ac0 	.word	0x000d5ac0
 
 000d4dc4 <_GLOBAL__sub_I__ZN5spark11MeshPublish13Subscriptions20event_handler_existsEPKcPFvS3_S3_EPvN17SubscriptionScope4EnumES3_>:
 
@@ -3473,8 +3473,8 @@ MeshClass Mesh;
    d4dfa:	f000 b97b 	b.w	d50f4 <__aeabi_atexit>
    d4dfe:	bf00      	nop
    d4e00:	2003e540 	.word	0x2003e540
-   d4e04:	000d5b20 	.word	0x000d5b20
-   d4e08:	000d5ab8 	.word	0x000d5ab8
+   d4e04:	000d5b28 	.word	0x000d5b28
+   d4e08:	000d5ac0 	.word	0x000d5ac0
    d4e0c:	2003e3b8 	.word	0x2003e3b8
    d4e10:	000d4dad 	.word	0x000d4dad
 
@@ -3613,7 +3613,7 @@ public:
    d4e84:	601a      	str	r2, [r3, #0]
    d4e86:	4770      	bx	lr
    d4e88:	2003e714 	.word	0x2003e714
-   d4e8c:	000d5aec 	.word	0x000d5aec
+   d4e8c:	000d5af4 	.word	0x000d5af4
 
 000d4e90 <_ZN5spark12NetworkClass7connectEj>:
         return Network;
@@ -3916,7 +3916,7 @@ class IPAddress : public Printable {
    d4fcc:	605a      	str	r2, [r3, #4]
    d4fce:	4770      	bx	lr
    d4fd0:	2003e71c 	.word	0x2003e71c
-   d4fd4:	000d5b20 	.word	0x000d5b20
+   d4fd4:	000d5b28 	.word	0x000d5b28
 
 000d4fd8 <pinAvailable>:
 
@@ -4087,7 +4087,7 @@ int32_t analogRead(pin_t pin)
    d509e:	60e0      	str	r0, [r4, #12]
    d50a0:	4620      	mov	r0, r4
    d50a2:	bd70      	pop	{r4, r5, r6, pc}
-   d50a4:	000d5b4c 	.word	0x000d5b4c
+   d50a4:	000d5b54 	.word	0x000d5b54
 
 000d50a8 <_Z19__fetch_global_Wirev>:
 	return defaultWireConfig();
@@ -4852,111 +4852,111 @@ TwoWire& __fetch_global_Wire()
    d57fc:	4373 6c6f 656c 7463 6f69 0a6e 4d00 3130     sCollection..M01
    d580c:	475f 7465 6147 4373 6e6f 6563 746e 6172     _GetGasConcentra
    d581c:	6974 6e6f 4d5f 6b61 7265 4f49 000a 5420     tion_MakerIO.. T
-   d582c:	544f 4c41 203a 6573 736e 726f 6156 756c     OTAL: sensorValu
-   d583c:	2065 253e 0a69 2000 4f54 4154 3a4c 7320     e >%i.. TOTAL: s
-   d584c:	6e65 6f73 5672 6c61 6575 6620 6c6f 6f6c     ensorValue follo
-   d585c:	6977 676e 7320 6275 7274 6361 6974 6e6f     wing subtraction
-   d586c:	3e20 6925 000a 5050 204d 203d 0a00 304d      >%i..PPM = ..M0
-   d587c:	5f32 6547 4774 7361 6f43 636e 6e65 7274     2_GetGasConcentr
-   d588c:	7461 6f69 5f6e 614d 656b 4972 2d4f 4554     ation_MakerIO-TE
-   d589c:	5453 000a 5050 204d 253e 2e30 6632 000a     ST..PPM >%0.2f..
-   d58ac:	4d0a 3330 475f 7465 6147 4373 6e6f 6563     .M03_GetGasConce
-   d58bc:	746e 6172 6974 6e6f 4d5f 6b61 7265 4f49     ntration_MakerIO
-   d58cc:	462d 4e49 4c41 000a                         -FINAL..
+   d582c:	544f 4c41 203a 4f4e 5332 6e65 6f73 5672     OTAL: NO2SensorV
+   d583c:	6c61 6575 3e20 6925 000a 5420 544f 4c41     alue >%i.. TOTAL
+   d584c:	203a 4f4e 5332 6e65 6f73 5672 6c61 6575     : NO2SensorValue
+   d585c:	6620 6c6f 6f6c 6977 676e 7320 6275 7274      following subtr
+   d586c:	6361 6974 6e6f 3e20 6925 000a 5050 204d     action >%i..PPM 
+   d587c:	203d 0a00 304d 5f32 6547 4774 7361 6f43     = ..M02_GetGasCo
+   d588c:	636e 6e65 7274 7461 6f69 5f6e 614d 656b     ncentration_Make
+   d589c:	4972 2d4f 4554 5453 000a 5050 204d 253e     rIO-TEST..PPM >%
+   d58ac:	2e30 6632 000a 4d0a 3330 475f 7465 6147     0.2f...M03_GetGa
+   d58bc:	4373 6e6f 6563 746e 6172 6974 6e6f 4d5f     sConcentration_M
+   d58cc:	6b61 7265 4f49 462d 4e49 4c41 000a 0000     akerIO-FINAL....
 
-000d58d4 <_ZTVN5spark13EthernetClassE>:
+000d58dc <_ZTVN5spark13EthernetClassE>:
 	...
-   d58dc:	45d7 000d 45cd 000d 45c3 000d 45b9 000d     .E...E...E...E..
-   d58ec:	45ad 000d 45a1 000d 4595 000d 458d 000d     .E...E...E...E..
-   d58fc:	4583 000d 4579 000d 4ef9 000d 6162 6475     .E..yE...N..baud
-   d590c:	5300 7265 6169 006c 6553 6972 6c61 0031     .Serial.Serial1.
-   d591c:	7974 6570 7000 7261 6d61 6300 646d 6900     type.param.cmd.i
-   d592c:	0064 6e68 0064 7473 6d72 6600 6c69 0074     d.hnd.strm.filt.
-   d593c:	766c 006c 6461 4864 6e61 6c64 7265 7200     lvl.addHandler.r
-   d594c:	6d65 766f 4865 6e61 6c64 7265 6500 756e     emoveHandler.enu
-   d595c:	486d 6e61 6c64 7265 0073 534a 4e4f 7453     mHandlers.JSONSt
-   d596c:	6572 6d61 6f4c 4867 6e61 6c64 7265 6100     reamLogHandler.a
-   d597c:	7070 2500 3130 7530 0020 205d 2500 0064     pp.%010u .] .%d.
-   d598c:	202c 2800 3a29 0020 5b20 6300 646f 2065     , .(): . [.code 
-   d599c:	203d 2500 0069 6564 6174 6c69 2073 203d     = .%i.details = 
-   d59ac:	0d00 000a 0066 6e6c 6600 006e 6f63 6564     ....f.ln.fn.code
-   d59bc:	6400 7465 6961 006c 6f6e 656e 7400 6172     .detail.none.tra
-   d59cc:	6563 6900 666e 006f 6177 6e72 6500 7272     ce.info.warn.err
-   d59dc:	726f 7000 6e61 6369 6100 6c6c 5a00 2500     or.panic.all.Z.%
-   d59ec:	302b 6433 253a 3230 0075 5925 252d 2d6d     +03d:%02u.%Y-%m-
-   d59fc:	6425 2554 3a48 4d25 253a 2553 007a 7361     %dT%H:%M:%S%z.as
-   d5a0c:	7463 6d69 0065 0000                         ctime...
+   d58e4:	45d7 000d 45cd 000d 45c3 000d 45b9 000d     .E...E...E...E..
+   d58f4:	45ad 000d 45a1 000d 4595 000d 458d 000d     .E...E...E...E..
+   d5904:	4583 000d 4579 000d 4ef9 000d 6162 6475     .E..yE...N..baud
+   d5914:	5300 7265 6169 006c 6553 6972 6c61 0031     .Serial.Serial1.
+   d5924:	7974 6570 7000 7261 6d61 6300 646d 6900     type.param.cmd.i
+   d5934:	0064 6e68 0064 7473 6d72 6600 6c69 0074     d.hnd.strm.filt.
+   d5944:	766c 006c 6461 4864 6e61 6c64 7265 7200     lvl.addHandler.r
+   d5954:	6d65 766f 4865 6e61 6c64 7265 6500 756e     emoveHandler.enu
+   d5964:	486d 6e61 6c64 7265 0073 534a 4e4f 7453     mHandlers.JSONSt
+   d5974:	6572 6d61 6f4c 4867 6e61 6c64 7265 6100     reamLogHandler.a
+   d5984:	7070 2500 3130 7530 0020 205d 2500 0064     pp.%010u .] .%d.
+   d5994:	202c 2800 3a29 0020 5b20 6300 646f 2065     , .(): . [.code 
+   d59a4:	203d 2500 0069 6564 6174 6c69 2073 203d     = .%i.details = 
+   d59b4:	0d00 000a 0066 6e6c 6600 006e 6f63 6564     ....f.ln.fn.code
+   d59c4:	6400 7465 6961 006c 6f6e 656e 7400 6172     .detail.none.tra
+   d59d4:	6563 6900 666e 006f 6177 6e72 6500 7272     ce.info.warn.err
+   d59e4:	726f 7000 6e61 6369 6100 6c6c 5a00 2500     or.panic.all.Z.%
+   d59f4:	302b 6433 253a 3230 0075 5925 252d 2d6d     +03d:%02u.%Y-%m-
+   d5a04:	6425 2554 3a48 4d25 253a 2553 007a 7361     %dT%H:%M:%S%z.as
+   d5a14:	7463 6d69 0065 0000                         ctime...
 
-000d5a14 <_ZTV9IPAddress>:
+000d5a1c <_ZTV9IPAddress>:
 	...
-   d5a1c:	4921 000d 4911 000d 4913 000d               !I...I...I..
+   d5a24:	4921 000d 4911 000d 4913 000d               !I...I...I..
 
-000d5a28 <_ZTV9USBSerial>:
+000d5a30 <_ZTV9USBSerial>:
 	...
-   d5a30:	49f9 000d 4a49 000d 4a57 000d 467d 000d     .I..IJ..WJ..}F..
-   d5a40:	4a35 000d 49fb 000d 4a11 000d 4a43 000d     5J...I...J..CJ..
-   d5a50:	4a27 000d 49f5 000d                         'J...I..
+   d5a38:	49f9 000d 4a49 000d 4a57 000d 467d 000d     .I..IJ..WJ..}F..
+   d5a48:	4a35 000d 49fb 000d 4a11 000d 4a43 000d     5J...I...J..CJ..
+   d5a58:	4a27 000d 49f5 000d                         'J...I..
 
-000d5a58 <_ZTV11USARTSerial>:
+000d5a60 <_ZTV11USARTSerial>:
 	...
-   d5a60:	4b11 000d 4b61 000d 4b6f 000d 467d 000d     .K..aK..oK..}F..
-   d5a70:	4b25 000d 4b47 000d 4b33 000d 4b5b 000d     %K..GK..3K..[K..
-   d5a80:	4b13 000d 4b17 000d                         .K...K..
+   d5a68:	4b11 000d 4b61 000d 4b6f 000d 467d 000d     .K..aK..oK..}F..
+   d5a78:	4b25 000d 4b47 000d 4b33 000d 4b5b 000d     %K..GK..3K..[K..
+   d5a88:	4b13 000d 4b17 000d                         .K...K..
 
-000d5a88 <_ZTV7TwoWire>:
+000d5a90 <_ZTV7TwoWire>:
 	...
-   d5a90:	4c15 000d 4c5f 000d 4c37 000d 4c17 000d     .L.._L..7L...L..
-   d5aa0:	4c3f 000d 4c47 000d 4c4f 000d 4c57 000d     ?L..GL..OL..WL..
+   d5a98:	4c15 000d 4c5f 000d 4c37 000d 4c17 000d     .L.._L..7L...L..
+   d5aa8:	4c3f 000d 4c47 000d 4c4f 000d 4c57 000d     ?L..GL..OL..WL..
 
-000d5ab0 <_ZTVN5spark9MeshClassE>:
+000d5ab8 <_ZTVN5spark9MeshClassE>:
 	...
-   d5ab8:	4cf7 000d 4ced 000d 4ce3 000d 4cd9 000d     .L...L...L...L..
-   d5ac8:	4ccd 000d 4cc1 000d 4cb5 000d 4cad 000d     .L...L...L...L..
-   d5ad8:	4ca3 000d 4c99 000d 4ef9 000d               .L...L...N..
+   d5ac0:	4cf7 000d 4ced 000d 4ce3 000d 4cd9 000d     .L...L...L...L..
+   d5ad0:	4ccd 000d 4cc1 000d 4cb5 000d 4cad 000d     .L...L...L...L..
+   d5ae0:	4ca3 000d 4c99 000d 4ef9 000d               .L...L...N..
 
-000d5ae4 <_ZTVN5spark9WiFiClassE>:
+000d5aec <_ZTVN5spark9WiFiClassE>:
 	...
-   d5aec:	4e73 000d 4e69 000d 4e5f 000d 4e15 000d     sN..iN.._N...N..
-   d5afc:	4e53 000d 4e47 000d 4e3b 000d 4e33 000d     SN..GN..;N..3N..
-   d5b0c:	4e29 000d 4e1f 000d 4ef9 000d               )N...N...N..
+   d5af4:	4e73 000d 4e69 000d 4e5f 000d 4e15 000d     sN..iN.._N...N..
+   d5b04:	4e53 000d 4e47 000d 4e3b 000d 4e33 000d     SN..GN..;N..3N..
+   d5b14:	4e29 000d 4e1f 000d 4ef9 000d               )N...N...N..
 
-000d5b18 <_ZTVN5spark12NetworkClassE>:
+000d5b20 <_ZTVN5spark12NetworkClassE>:
 	...
-   d5b20:	4e91 000d 4e9b 000d 4ea5 000d 4eaf 000d     .N...N...N...N..
-   d5b30:	4eb9 000d 4ec5 000d 4ed1 000d 4edd 000d     .N...N...N...N..
-   d5b40:	4ee5 000d 4eef 000d 4ef9 000d               .N...N...N..
+   d5b28:	4e91 000d 4e9b 000d 4ea5 000d 4eaf 000d     .N...N...N...N..
+   d5b38:	4eb9 000d 4ec5 000d 4ed1 000d 4edd 000d     .N...N...N...N..
+   d5b48:	4ee5 000d 4eef 000d 4ef9 000d               .N...N...N..
 
-000d5b4c <_ZSt7nothrow>:
-   d5b4c:	0000 0000                                   ....
+000d5b54 <_ZSt7nothrow>:
+   d5b54:	0000 0000                                   ....
 
-000d5b50 <__sf_fake_stdin>:
-	...
-
-000d5b70 <__sf_fake_stdout>:
+000d5b58 <__sf_fake_stdin>:
 	...
 
-000d5b90 <__sf_fake_stderr>:
-	...
-   d5bb0:	0043                                        C.
-
-000d5bb2 <link_const_variable_data_end>:
+000d5b78 <__sf_fake_stdout>:
 	...
 
-000d5bb4 <link_constructors_location>:
-   d5bb4:	000d41b9 	.word	0x000d41b9
-   d5bb8:	000d45e1 	.word	0x000d45e1
-   d5bbc:	000d4611 	.word	0x000d4611
-   d5bc0:	000d4655 	.word	0x000d4655
-   d5bc4:	000d479d 	.word	0x000d479d
-   d5bc8:	000d47ad 	.word	0x000d47ad
-   d5bcc:	000d47e5 	.word	0x000d47e5
-   d5bd0:	000d4dc5 	.word	0x000d4dc5
-   d5bd4:	000d4e7d 	.word	0x000d4e7d
-   d5bd8:	000d4fc5 	.word	0x000d4fc5
-   d5bdc:	000d5139 	.word	0x000d5139
-   d5be0:	000d51bd 	.word	0x000d51bd
-   d5be4:	000d5281 	.word	0x000d5281
-   d5be8:	000d5345 	.word	0x000d5345
+000d5b98 <__sf_fake_stderr>:
+	...
+   d5bb8:	0043                                        C.
 
-000d5bec <link_constructors_end>:
-   d5bec:	00000000 	.word	0x00000000
+000d5bba <link_const_variable_data_end>:
+	...
+
+000d5bbc <link_constructors_location>:
+   d5bbc:	000d41b9 	.word	0x000d41b9
+   d5bc0:	000d45e1 	.word	0x000d45e1
+   d5bc4:	000d4611 	.word	0x000d4611
+   d5bc8:	000d4655 	.word	0x000d4655
+   d5bcc:	000d479d 	.word	0x000d479d
+   d5bd0:	000d47ad 	.word	0x000d47ad
+   d5bd4:	000d47e5 	.word	0x000d47e5
+   d5bd8:	000d4dc5 	.word	0x000d4dc5
+   d5bdc:	000d4e7d 	.word	0x000d4e7d
+   d5be0:	000d4fc5 	.word	0x000d4fc5
+   d5be4:	000d5139 	.word	0x000d5139
+   d5be8:	000d51bd 	.word	0x000d51bd
+   d5bec:	000d5281 	.word	0x000d5281
+   d5bf0:	000d5345 	.word	0x000d5345
+
+000d5bf4 <link_constructors_end>:
+	...
