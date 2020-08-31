@@ -12,8 +12,8 @@
  * M02_GetGasConcentration_MakerIO-TEST match those calculations using the same test input values from the
  * M01 source function, then final program changes will be included and tested in production function:
  * M03_GetGasConcentration_MakerIO-FINAL 
- *  This function, along with required constants & variables will 
- * then be included into the driver program Capstone_Main.ino for production gas collection.
+ *  This last function, along with required constants & variables in the HEADER section, will 
+ * be included into the driver program Capstone_Main.ino for production gas collection.
  * In lieu of actual gas concentration data, the program will provide input test values for functions M01 & M02
  * in order to create calculation values for comparison between functions.
  *  These functions can be run a single time in SETUP() in  order to better compare their results.
@@ -23,21 +23,18 @@
  */
 // *** M01 & M02 _GetGasConcentration_MakerIO: program CONSTANTS
 //const float Vref = 1.1;  //ORIGINAL VALUE: This is the voltage of the internal reference sourced from Maker.IO
-/*This value below is the measured voltage of the internal reference taken from circuit (not yet constructed).
-* In the interim time before the circuit is constructed & voltage measurement taken, we'll set it 
-* to 1 so it functions as a placemaker for the Maker.IO source calculation so it won't affect calculated 
-* PPM values.
-*/
-const float VOLTS_LADDER_REF = 1.0;  // TEST voltage of the internal reference. Replace w/ circuit voltage
-const float S_F = 2.11; // sensitivity in nA/ppm. this is roughly about 1/2 the sensitivity of the barcode on the
-//sensor. Try finding a known concentration of CO to measure, or just approximate.
+const float VOLTS_LADDER_REF = 1.0;  // TEST internal voltage used while determining final internal voltage value
+const float V_REF = 3.3; // Per BR, adjusted internal voltage set to Argon input voltage. will triple nanoAmp 
+// calculation compared to TEST VOLTS_LADDER_REF. 
+const float S_F = 1.4; // sensitivity in nA/ppm. This is roughly about 1/2 the sensitivity of the barcode on the
+//sensor (2.78::see Spec Sensor 3SP_NO2_5F-P-Package-110-507.pdf). A number less than 2 will inflate the #PPMs 
 
 const int R1_VALUE = 9700;  // Value of 10kOhm resistor (falls within +/- 5% range)
 const int SMPL_SIZE = 256; //Number of samples averaged, like adding 8 bits to ADC
-
+const int VLTG_LADDER_OFF = 375; // replaces source C_OFF for accurate voltage ladder offset from sesnor reading
 const int analogInPinD14 = D14;  // Analog input pin that the sensor is attached to
 const long int TEST_SENSOR_VALUE=10000; // provides intial TEST value for program,replacing analogRead() values
-const long int C_OFF = 68286; //286mV offset due to resistor ladder. Try taking the average of a long
+const long int C_OFF = 68286; //DEFUNCT: 286mV offset due to resistor ladder. Try taking the average of a long
 //measurement of the counts without a sensor in place. This should give a good Zero.
 
 // END M01 & M02 _GetGasConcentration_MakerIO: CONSTANTS
@@ -141,22 +138,23 @@ void M03_GetGasConcentration_MakerIO_FINAL()
   float calc_nA=0.0;
 
   Serial.printf("\nM03_GetGasConcentration_MakerIO-FINAL\n");
-// 1) read the test analog in values:
+// 1) read and accumulate the test analog in values:
   sensorValue = 0;
   for (int i = 0; i < SMPL_SIZE; i++) 
   {
-    sensorValue += analogRead(analogInPinD14); // source code with analog read
+    /*
+    * 8/31/20 TF. Per BR, relocate voltage ladder offset to INSIDE sample size loop to more
+    * accurately reduce input sensor reading dur to ladder. This will make low sensor readings
+    * more accurate.
+    */
+    sensorValue += analogRead(analogInPinD14) - VLTG_LADDER_OFF; // source code with analog read
     delay(3);   // needs 2 ms for the analog-to-digital converter to settle after the last reading
   }
   Serial.printf(" TOTAL: sensorValue >%i\n", sensorValue);
 
-//2) subtract the offset of the resistor ladder * 256
- sensorValue = sensorValue - C_OFF; 
-Serial.printf(" TOTAL: sensorValue following subtraction >%i\n", sensorValue);
-
- // 3) print the PPM results to the serial monitor:
+ // 2) print the PPM results to the serial monitor:
   rawInput = (float) sensorValue / (float) SMPL_SIZE / CONTROLLER_RESOLUTION;
-  calc_nA =  VOLTS_LADDER_REF/ (float) R1_VALUE * NANO_AMPS;
+  calc_nA =  V_REF/ (float) R1_VALUE * NANO_AMPS; // I=V/R * nanoAmps
   PPMconc = (float) rawInput * calc_nA / S_F;
   Serial.printf("PPM >%0.2f\n",PPMconc);
    
