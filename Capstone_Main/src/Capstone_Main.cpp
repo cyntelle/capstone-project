@@ -3,7 +3,7 @@
 /******************************************************/
 
 #include "Particle.h"
-#line 1 "c:/Users/Ted/Documents/IoT/capstone-project/Capstone_Main/src/Capstone_Main.ino"
+#line 1 "/Users/cyntelle/Documents/IoT/capstone/Capstone_Main/src/Capstone_Main.ino"
 /*
  * Project: Capstone Driver Program
  * Description: The purpose of this capstone project is to establish a cost-effective detection mechanism 
@@ -21,6 +21,7 @@
  * Author: Cyntelle Renteria & Ted Fites
  * Date: 8/23/20
  * Modifications:
+ * 8/31/20  CR Added function M02_get_MQ131_data to capture ozone gas emissions + Json function to post CO & O3 data to Particle Console
  * 8/31/20  TF Added function M03_GetGasConcentration_MakerIO_FINAL to calculate NO2 gas concentrations
  * 8/31/20  CR modified + tested MQ9 sensor function in clean air (working)
  * 8/23/20  CR Created program + added MQ9 function (not tested)
@@ -29,19 +30,31 @@
 
 // HEADER section ********************************************************
 
+//Header Files
+#include "JsonParserGeneratorRK.h"
+
 // Constants & variables
 
-//******* Variables for M01_get_MQ9_data function **********//
+//******* M01_get_MQ9_data constants and variables for function **********//
 void setup();
 void loop();
 void M01_get_MQ9_data();
+void M02_get_MQ131_data();
 void M03_GetGasConcentration_MakerIO_FINAL();
-#line 29 "c:/Users/Ted/Documents/IoT/capstone-project/Capstone_Main/src/Capstone_Main.ino"
+void  createEventPayLoad(float COppm, float O3ppm);
+#line 33 "/Users/cyntelle/Documents/IoT/capstone/Capstone_Main/src/Capstone_Main.ino"
 const int MQ9_Addr = 0x50; // Address for MQ9 I2C CO Sensor
-unsigned int data[2];
-int raw_adc = 0;
+unsigned int MQ9_data[2];
+int MQ9_raw_adc = 0;
 float COppm = 0.0;
 // END  Variables for M01_get_MQ9_data function **********//
+
+//******* M02_get_MQ131_data constants and variables for function **********//
+const int MQ131_Addr = 0x51; // Address for MQ131 I2C Ozone Sensor
+unsigned int MQ131_data[2];
+int MQ131_raw_adc = 0;
+float O3ppm = 0.0;
+// END  Variables for M02_get_MQ131_data function **********//
 
 // *** M03_GetGasConcentration_MakerIO-FINAL: program CONSTANTS & VARIABLES
 /*
@@ -72,6 +85,7 @@ void setup()
   Serial.begin(9600);
   Wire.begin();
   Wire.beginTransmission(MQ9_Addr);
+  Wire.beginTransmission(MQ131_Addr);
   Wire.write(0);
   Wire.endTransmission(true);
 }
@@ -82,7 +96,9 @@ void loop()
 *************************************************************************************/
 {
     M01_get_MQ9_data();
-    M03_GetGasConcentration_MakerIO_FINAL();
+    M02_get_MQ131_data();
+    // M03_GetGasConcentration_MakerIO_FINAL();
+    createEventPayLoad(COppm,O3ppm);
 } //*********************************** END LOOP  *************************************
 
 void M01_get_MQ9_data()
@@ -94,14 +110,32 @@ void M01_get_MQ9_data()
   // Request 2 bytes of data
   Wire.requestFrom(MQ9_Addr, 2, true);
   // Read 2 bytes of data: raw_adc msb, raw_adc lsb
-  data[0] = Wire.read();
-  data[1] = Wire.read();
+  MQ9_data[0] = Wire.read();
+  MQ9_data[1] = Wire.read();
   delay(300);
   // Convert the data to 12-bits
-  raw_adc = ((data[0] & 0x0F) * 256) + data[1];
-  COppm = (1000.0 / 4096.0) * raw_adc + 10.0;
+  MQ9_raw_adc = ((MQ9_data[0] & 0x0F) * 256) + MQ9_data[1];
+  COppm = (1000.0 / 4096.0) * MQ9_raw_adc + 10.0;
   Serial.printf("Carbon Monoxide: %0.2fppm\n", COppm);
-  return;
+}
+
+void M02_get_MQ131_data()
+{
+  // Start I2C transmission
+  Wire.beginTransmission(MQ131_Addr);
+  Wire.write(0x00);
+  Wire.endTransmission(false);
+  // Request 2 bytes of data
+  Wire.requestFrom(MQ131_Addr, 2, true);
+  // Read 2 bytes of data
+  // raw_adc msb, raw_adc lsb
+    MQ131_data[0] = Wire.read();
+    MQ131_data[1] = Wire.read();
+  delay(300);
+  // Convert the data to 12-bits
+  MQ131_raw_adc = ((MQ131_data[0] & 0x0F) * 256) + MQ131_data[1];
+  O3ppm = (1.99 / 4095.0) * MQ131_raw_adc + 0.01;
+  Serial.printf("Ozone: %0.2f ppm\n", O3ppm);
 }
 
 void M03_GetGasConcentration_MakerIO_FINAL()
@@ -133,4 +167,15 @@ void M03_GetGasConcentration_MakerIO_FINAL()
  //Trying to make each loop 1 second
   delay(218);  //1 second – 3ms*256ms (each adc read)-14ms (for printing)= 218ms
   return;
+}
+
+void  createEventPayLoad(float COppm, float O3ppm)
+{
+  JsonWriterStatic<256> jw;
+  {
+    JsonWriterAutoObject obj(&jw);
+    jw.insertKeyValue("Ozone", O3ppm);
+    jw.insertKeyValue("Carbon Monoxide", COppm);
+  }
+  Particle.publish("gas-emissions", jw.getBuffer(), PRIVATE);
 }
