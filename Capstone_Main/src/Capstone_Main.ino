@@ -16,6 +16,7 @@
  * Date: 8/23/20
  * Modifications:
  * 8/23/20  CR Created program + added MQ9 function (not tested)
+ * 8/31/20  CR modified + tested MQ9 sensor function in clean air (working)
  * 
  */
 
@@ -24,17 +25,17 @@
 // Constants & variables
 
 //******* Variables for M01_get_MQ9_data function **********//
-const int MPU_ADDR = 0x00; // Address for MQ9 I2C CO Sensor
-int16_t rawADCval;
-int COppm;
+const int MQ9_Addr = 0x50; // Address for MQ9 I2C CO Sensor
+unsigned int data[2];
+int raw_adc = 0;
+float COppm = 0.0;
 
 
 void setup() 
 {
   Serial.begin(9600);
   Wire.begin();
-  Wire.beginTransmission(MPU_ADDR);
-//   Wire.write(0x6B);
+  Wire.beginTransmission(MQ9_Addr);
   Wire.write(0);
   Wire.endTransmission(true);
 }
@@ -50,11 +51,18 @@ void loop()
 
 void M01_get_MQ9_data()
 {
-  Wire.beginTransmission(MPU_ADDR);
+  // Start I2C transmission
+  Wire.beginTransmission(MQ9_Addr);
+  Wire.write(0x00);
   Wire.endTransmission(false);
-  Wire.requestFrom(MPU_ADDR, 2, true);
-
-  rawADCval = (Wire.read() << 8) | Wire.read();
-  COppm = ((1000/4096)*rawADCval)+10;
-  Serial.printf("Carbon Monoxide: %i\n", COppm)
+  // Request 2 bytes of data
+  Wire.requestFrom(MQ9_Addr, 2, true);
+  // Read 2 bytes of data: raw_adc msb, raw_adc lsb
+  data[0] = Wire.read();
+  data[1] = Wire.read();
+  delay(300);
+  // Convert the data to 12-bits
+  raw_adc = ((data[0] & 0x0F) * 256) + data[1];
+  COppm = (1000.0 / 4096.0) * raw_adc + 10.0;
+  Serial.printf("Carbon Monoxide: %0.2fppm\n", COppm);
 }
