@@ -15,6 +15,7 @@
  * Author: Cyntelle Renteria & Ted Fites
  * Date: 8/23/20
  * Modifications:
+ * 9/3/20 CR modified code per CC notes (still need to work on neo pixel + proper documentation of code)
  * 9/2/20 CR added function M04_get_HM3301_data to capture particulate matter data + neopixel 
  *        to visualize good/medium/poor air quality + Adafruit IO dashboard to publish data to cloud
  * 8/31/20  CR Added function M02_get_MQ131_data to capture ozone gas emissions + Json function 
@@ -60,12 +61,12 @@ unsigned long lastMinute;
 // END  Variables for MQTT **********//
 
 //******* Variables for NeoPixel **********//
-int neo_pin = D3;
-int PixelON = 0xC0C0C0; // first pixel in silver
-int GoodAQ = 0x00FFFF; // pixel color cyan
-int MedAQ = 0xFFFF00; // pixel color yellow
-int PoorAQ = 0x8B0000; // pixel color red
-int ErrorAQ = 0x9932CC; // pixel color purple
+const int neo_pin = D3;
+const int PixelON = 0xC0C0C0; // first pixel in silver
+const int GoodAQ = 0x00FFFF; // pixel color cyan
+const int MedAQ = 0xFFFF00; // pixel color yellow
+const int PoorAQ = 0x8B0000; // pixel color red
+const int ErrorAQ = 0x9932CC; // pixel color purple
 
 #define PIXEL_PIN D3
 #define PIXEL_COUNT 12
@@ -137,22 +138,15 @@ void loop()
 **************************************  MAIN LOOP  **********************************
 *************************************************************************************/
 {
+  //make sure neopixels are working
   pixel.setPixelColor(0, PixelON);
   pixel.setBrightness(80);
   pixel.show();
 
   MQTT_connect();
+  MQTT_ping();
 
-  if ((millis()-last)>60000) 
-  {
-    Serial.printf("Pinging MQTT \n");
-    if(! mqtt.ping()) 
-    {
-      Serial.printf("Disconnecting \n");
-      mqtt.disconnect();
-    }
-    last = millis();
-  }
+
 
   if(millis()-lastMinute > 30000) 
   {
@@ -188,6 +182,7 @@ void M01_get_MQ9_data()
   delay(300);
   // Convert the data to 12-bits
   MQ9_raw_adc = ((MQ9_data[0] & 0x0F) * 256) + MQ9_data[1];
+  //Formula to convert raw data to PPM (parts per million)
   COppm = (1000.0 / 4096.0) * MQ9_raw_adc + 10.0;
   Serial.printf("Carbon Monoxide: %0.2fppm\n", COppm);
 }
@@ -206,6 +201,7 @@ void M02_get_MQ131_data()
   MQ131_data[1] = Wire.read();
   // Convert the data to 12-bits
   MQ131_raw_adc = ((MQ131_data[0] & 0x0F) * 256) + MQ131_data[1];
+  // Formula to convert raw data to PPM (parts per million)
   O3ppm = (1.99 / 4095.0) * MQ131_raw_adc + 0.01;
   Serial.printf("Ozone: %0.2f ppm\n", O3ppm);
 }
@@ -247,14 +243,11 @@ void M04_get_HM3301_data()
   Wire.beginTransmission(HM3301_Addr);
   // Wire.write(0x81);
   Wire.endTransmission(false);
-  // Request 2 bytes of data
   Wire.requestFrom(HM3301_Addr, 29, true);
-  // Read 2 bytes of data: raw_adc msb, raw_adc lsb
   for(int i=0;i<29;i++)
   {
       HM3301_data[i] = Wire.read();
   }
-  // Convert the data to 12-bits
   for(int n=0;n<29;n=n+2)
   {
     HM3301_adc = (HM3301_data[n] << 8) | HM3301_data[n+1];
@@ -373,6 +366,20 @@ void MQTT_connect()
        delay(5000);  // wait 5 seconds
   }
   Serial.println("MQTT Connected!");
+}
+
+void MQTT_ping()
+{
+    if ((millis()-last)>60000) 
+  {
+    Serial.printf("Pinging MQTT \n");
+    if(! mqtt.ping()) 
+    {
+      Serial.printf("Disconnecting \n");
+      mqtt.disconnect();
+    }
+    last = millis();
+  }
 }
 
 // void  createEventPayLoad(float COppm, float O3ppm)
