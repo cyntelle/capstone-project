@@ -3,7 +3,7 @@
 /******************************************************/
 
 #include "Particle.h"
-#line 1 "/Users/cyntelle/Documents/IoT/capstone/Capstone_Main/src/Capstone_Main.ino"
+#line 1 "c:/Users/Ted/Documents/IoT/capstone-project/Capstone_Main/src/Capstone_Main.ino"
 /*
  * Project: Capstone Driver Program
  * Description: The purpose of this capstone project is to establish a cost-effective detection mechanism 
@@ -32,6 +32,7 @@
 
 //Header Files
 #include "JsonParserGeneratorRK.h"
+#include "MQ135.h"
 
 // Constants & variables
 
@@ -42,7 +43,7 @@ void M01_get_MQ9_data();
 void M02_get_MQ131_data();
 void M03_GetGasConcentration_MakerIO_FINAL();
 void  createEventPayLoad(float COppm, float O3ppm);
-#line 33 "/Users/cyntelle/Documents/IoT/capstone/Capstone_Main/src/Capstone_Main.ino"
+#line 34 "c:/Users/Ted/Documents/IoT/capstone-project/Capstone_Main/src/Capstone_Main.ino"
 const int MQ9_Addr = 0x50; // Address for MQ9 I2C CO Sensor
 unsigned int MQ9_data[2];
 int MQ9_raw_adc = 0;
