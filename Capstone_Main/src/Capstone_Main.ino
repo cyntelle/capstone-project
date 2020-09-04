@@ -15,6 +15,7 @@
  * Author: Cyntelle Renteria & Ted Fites
  * Date: 8/23/20
  * Modifications:
+ * 9/4/20 CR integrated CO2 functions per BR for MG-811 sensor to capture CO2 emissions (working)
  * 9/4/20 CR added OLED with button to switch menus, and updated MQ131 code (working)
  * 9/3/20 CR modified code per CC notes (still need to work on neo pixel + proper documentation of code)
  * 9/2/20 CR added function M04_get_HM3301_data to capture particulate matter data + neopixel 
@@ -55,7 +56,9 @@ Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_K
 /****************************** Feeds ***************************************/ 
 Adafruit_MQTT_Publish CO = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Carbon Monoxide");
 Adafruit_MQTT_Publish O3 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Ozone");
+// Adafruit_MQTT_Publish NO2 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Nitrogen Dioxide");
 Adafruit_MQTT_Publish PM = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Particulate Matter");
+Adafruit_MQTT_Publish CO2 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Carbon Dioxide");
 
 // Constants & variables
 
@@ -76,7 +79,7 @@ int buttonPin = D2;
 
 //******* Variables for NeoPixel **********//
 const int neo_pin = D3;
-const int PixelON = 0xC0C0C0; // first pixel in silver
+const int PixelON = 0xFF00FF; // first pixel in magenta
 const int GoodAQ = 0x00FFFF; // pixel color cyan
 const int MedAQ = 0xFFFF00; // pixel color yellow
 const int PoorAQ = 0x8B0000; // pixel color red
@@ -136,9 +139,25 @@ uint8_t *pointer;
 uint16_t HM3301_data2;
 // END  Variables for M04_get_HM3301_data function **********//
 
+//******* Variables for M05_get_MG811_data function **********//
+int mgPin = A5;
+float raw_MG;
+float CO2ppm;
+
+#define DC_GAIN (8.5) //define the DC gain of amplifier
+#define ZERO_POINT_VOLTAGE (0.3176) //define the output of the sensor in volts when the concentration of CO2 is 400PPM
+#define REACTION_VOLTAGE (0.030) //define the voltage drop of the sensor when move the sensor from air into 1000PPM CO2
+#define READ_SAMPLE_INTERVAL (50) //define how many samples you are going to take in normal operation
+#define READ_SAMPLE_TIMES (5) //define the time interval(in milisecond) between each samples in 
+
+float CO2Curve[3] = {2.602, ZERO_POINT_VOLTAGE, (REACTION_VOLTAGE/(2.602-3))};
+// END  Variables for M05_get_MG811_data function **********//
+
+
 void setup() 
 {
   pinMode(buttonPin, INPUT_PULLDOWN);
+  pinMode(mgPin, INPUT);
   Serial.begin(9600);
 
   //request time sync from Particle Cloud
@@ -194,11 +213,14 @@ void loop()
     M02_get_MQ131_data();
     // M03_GetGasConcentration_MakerIO_FINAL();
     M04_get_HM3301_data();
+    M05_get_MG811_data();
     if(mqtt.Update()) 
     {
       CO.publish(COppm);
       O3.publish(O3ppm);
+      // NO2.publish(NO2PPMconc);
       PM.publish(HM3301_data2);
+      CO2.publish(CO2ppm);
     }
     lastMinute = millis();
   } 
@@ -300,6 +322,37 @@ void M04_get_HM3301_data()
   pointer = &HM3301_data[13];
   HM3301_data2 = *pointer;
   Serial.printf("Particulate Matter: %i\n", HM3301_data2);
+}
+
+void  M05_get_MG811_data()
+{
+  raw_MG = MGRead(mgPin);
+  CO2ppm = MGGetPercentage(raw_MG,CO2Curve);
+  Serial.printf("CO2 conc = %0.2f, Voltage = %0.2f \n", CO2ppm, raw_MG);
+}
+
+float MGRead(int mgPin)
+{
+  float v = 0;
+  for(int i=0; i<READ_SAMPLE_TIMES; i++)
+  {
+    v += analogRead(mgPin);
+    delay(READ_SAMPLE_INTERVAL);
+  }
+  v = (v/READ_SAMPLE_TIMES)*(3.3/4096);
+  return v;
+}
+
+int MGGetPercentage(float volts, float *pcurve)
+{
+  if((volts/DC_GAIN) >= ZERO_POINT_VOLTAGE)
+  {
+    return -1;
+  }
+  else
+  {
+    return pow(10, ((volts/DC_GAIN) - pcurve[1]) / pcurve[2] + pcurve[0]);
+  }
 }
 
 void  light_MQ9_Pixel()
@@ -425,7 +478,7 @@ void  switchMenu()
     display.printf("3- O3: %0.2fppm\n", O3ppm);
     display.printf("4- PM2.5: %i\n", HM3301_data2);
     display.printf("5- NO2: \n");
-    display.printf("6- CO2: \n");
+    display.printf("6- CO2: %0.2fppm\n", CO2ppm);
     display.display();
   }
   else if(!menuSwitch)
