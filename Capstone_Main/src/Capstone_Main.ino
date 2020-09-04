@@ -15,6 +15,7 @@
  * Author: Cyntelle Renteria & Ted Fites
  * Date: 8/23/20
  * Modifications:
+ * 9/4/20 CR added OLED with button to switch menus, and updated MQ131 code (working)
  * 9/3/20 CR modified code per CC notes (still need to work on neo pixel + proper documentation of code)
  * 9/2/20 CR added function M04_get_HM3301_data to capture particulate matter data + neopixel 
  *        to visualize good/medium/poor air quality + Adafruit IO dashboard to publish data to cloud
@@ -38,6 +39,8 @@
 #include "Adafruit_MQTT/Adafruit_MQTT.h" 
 #include "Adafruit_MQTT/Adafruit_MQTT_SPARK.h" 
 #include "Adafruit_MQTT/Adafruit_MQTT.h" 
+#include "Adafruit_SSD1306.h"
+#include <math.h>
 
 /************************* Adafruit.io Setup *********************************/ 
 #define AIO_SERVER      "io.adafruit.com" 
@@ -60,6 +63,16 @@ Adafruit_MQTT_Publish PM = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Par
 unsigned long last;
 unsigned long lastMinute;
 // END  Variables for MQTT **********//
+
+//******* Variables for OLED **********//
+#define OLED_RESET A0
+Adafruit_SSD1306 display(OLED_RESET);
+
+char currentDateTime[25], currentTime[9];
+bool buttonState;
+bool menuSwitch = false;
+int buttonPin = D2;
+// END  Variables for OLED **********//
 
 //******* Variables for NeoPixel **********//
 const int neo_pin = D3;
@@ -88,6 +101,8 @@ float COppm = 0.0;
 const int MQ131_Addr = 0x51; // Address for MQ131 I2C Ozone Sensor
 unsigned int MQ131_data[2];
 int MQ131_raw_adc = 0;
+float Vacd1;
+float RsRo;
 float O3ppm = 0.0;
 // END  Variables for M02_get_MQ131_data function **********//
 
@@ -123,7 +138,20 @@ uint16_t HM3301_data2;
 
 void setup() 
 {
+  pinMode(buttonPin, INPUT_PULLDOWN);
   Serial.begin(9600);
+
+  //request time sync from Particle Cloud
+  Particle.syncTime();
+  waitUntil(Particle.syncTimeDone);
+
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  display.display();
+  delay(1000);
+  display.clearDisplay();
+  display.setRotation(0);
+
+  //initialize I2C transmission
   Wire.begin();
   Wire.beginTransmission(MQ9_Addr);
   Wire.beginTransmission(MQ131_Addr);
@@ -132,6 +160,8 @@ void setup()
 
   pixel.begin();
   pixel.show();
+
+  attachInterrupt(buttonPin, enableButton, RISING);
 }
 
 void loop() 
@@ -143,16 +173,26 @@ void loop()
   pixel.setPixelColor(0, PixelON);
   pixel.setBrightness(80);
   pixel.show();
+  
+  //display 2 OLED menus with button
+  buttonState = digitalRead(buttonPin);
+  if(buttonState)
+  {
+    menuSwitch = !menuSwitch;
+  }
 
+  displayMenu();
+
+  //connect to Adafruit.io
   MQTT_connect();
   MQTT_ping();
 
-
-
+  //read and publish data to Adafruit.io "Gas Emissions" Dashboard
   if(millis()-lastMinute > 30000) 
   {
     M01_get_MQ9_data();
     M02_get_MQ131_data();
+    // M03_GetGasConcentration_MakerIO_FINAL();
     M04_get_HM3301_data();
     if(mqtt.Update()) 
     {
@@ -162,10 +202,11 @@ void loop()
     }
     lastMinute = millis();
   } 
+
+  //light neo pixels to visual gas concentrations (see color key on OLED)
   light_MQ9_Pixel();
   light_MQ131_Pixel();
   light_HM3301_Pixel();
-    // M03_GetGasConcentration_MakerIO_FINAL();
     // createEventPayLoad(COppm,O3ppm);
 } //*********************************** END LOOP  *************************************
 
@@ -202,8 +243,10 @@ void M02_get_MQ131_data()
   MQ131_data[1] = Wire.read();
   // Convert the data to 12-bits
   MQ131_raw_adc = ((MQ131_data[0] & 0x0F) * 256) + MQ131_data[1];
+  Vacd1 = MQ131_raw_adc*(3.3/4096);
   // Formula to convert raw data to PPM (parts per million)
-  O3ppm = (1.99 / 4095.0) * MQ131_raw_adc + 0.01;
+  RsRo = (20.0/0.18)*(3.3-Vacd1)/Vacd1;
+  O3ppm = pow(10,-log(RsRo)+1.48);
   Serial.printf("Ozone: %0.2f ppm\n", O3ppm);
 }
 
@@ -344,6 +387,66 @@ void  light_HM3301_Pixel()
     pixel.setBrightness(80);
     pixel.show();
   }
+}
+
+void  displayMenu()
+{
+  getTime();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0,0);
+  switchMenu();
+}
+
+void  getTime()
+{
+  String DateTime, TimeOnly;
+
+  // get current time
+  DateTime = Time.timeStr();
+  TimeOnly = DateTime.substring(11,19);
+
+  // using time with formatted print statements
+  DateTime.toCharArray(currentDateTime,25);
+  TimeOnly.toCharArray(currentTime,9);
+  // Serial.printf("Date and Time is %s\n", currentDateTime);
+  // Serial.printf("Time is %s\n", currentTime);
+}
+
+void  switchMenu()
+{
+  if(menuSwitch)
+  {
+    display.clearDisplay();
+    display.printf("Time: %s\n", currentTime);
+    display.printf("clockwise from pink:\n");
+    display.printf("1- reading sensors..\n");
+    display.printf("2- CO: %0.2fppm\n", COppm);
+    display.printf("3- O3: %0.2fppm\n", O3ppm);
+    display.printf("4- PM2.5: %i\n", HM3301_data2);
+    display.printf("5- NO2: \n");
+    display.printf("6- CO2: \n");
+    display.display();
+  }
+  else if(!menuSwitch)
+  {
+      display.clearDisplay();
+      display.printf("Air Quality Color Key\n");
+      display.printf("\n");
+      display.printf("blue:    GOOD\n");
+      display.printf("\n");
+      display.printf("yellow:  MODERATE\n");
+      display.printf("\n");
+      display.printf("red:     HAZARDOUS\n");
+      display.display();  
+  }
+    // Serial.printf("button state: %i\n", buttonState);
+    // Serial.printf("menu: %i\n", menuSwitch);
+}
+
+void  enableButton()
+{
+  buttonState = true;
 }
 
 // Function to connect and reconnect as necessary to the MQTT server.
