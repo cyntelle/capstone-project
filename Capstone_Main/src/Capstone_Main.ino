@@ -5,16 +5,18 @@
  * detection and data analysis of airborne pollutants emitted from ABQ city- and Fuse-owned equipment.
  * Components/Sensors included:
  * - Particle Argon Microcontroller
- * - NeoPixel Ring/Strip 
- * - Particulate Matter Sensor (HM3301)
- * - Ozone - (MQ131)
- * - CO - (MQ9 I2C)
- * - CO2 - (MQ135)
- * - NO2 - Analog
+ * - Gas Sensor: CO (Carbon Monixide) MQ-9 I2C
+ * - Gas Sensor: O3 (Ozone) MQ-131 I2C
+ * - Gas Sensor: PM2.5 (Particulate Matter) HM3301 I2C
+ * - Gas Sensor: CO2 (Carbon Dioxide) MG-811 analog
+ * - OLED Display I2C
+ * - Button
+ * - NeoPixel Ring
 
  * Author: Cyntelle Renteria & Ted Fites
  * Date: 8/23/20
  * Modifications:
+ * 9/5/20 CR cleaned up code and added documentation (comments) throughout main driver program
  * 9/4/20 CR integrated CO2 functions per BR for MG-811 sensor to capture CO2 emissions (working)
  * 9/4/20 CR added OLED with button to switch menus, and updated MQ131 code (working)
  * 9/3/20 CR modified code per CC notes (still need to work on neo pixel + proper documentation of code)
@@ -25,23 +27,19 @@
  * 8/31/20  TF Added function M03_GetGasConcentration_MakerIO_FINAL to calculate NO2 gas concentrations
  * 8/31/20  CR modified + tested MQ9 sensor function in clean air (working)
  * 8/23/20  CR Created program + added MQ9 function (not tested)
- * 
  */
 
 // HEADER section ********************************************************
 
 //Header Files
 #include <secrets.h>
+#include <math.h>
 #include <Adafruit_MQTT.h>
-#include "JsonParserGeneratorRK.h"
-
-#include "neopixel.h"
-
 #include "Adafruit_MQTT/Adafruit_MQTT.h" 
 #include "Adafruit_MQTT/Adafruit_MQTT_SPARK.h" 
 #include "Adafruit_MQTT/Adafruit_MQTT.h" 
 #include "Adafruit_SSD1306.h"
-#include <math.h>
+#include "neopixel.h"
 
 /************************* Adafruit.io Setup *********************************/ 
 #define AIO_SERVER      "io.adafruit.com" 
@@ -52,46 +50,16 @@ TCPClient TheClient;
 
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details. 
 Adafruit_MQTT_SPARK mqtt(&TheClient,AIO_SERVER,AIO_SERVERPORT,AIO_USERNAME,AIO_KEY); 
+/************************* END Adafruit.io Setup *********************************/ 
 
-/****************************** Feeds ***************************************/ 
+/****************************** Adafruit.io Feeds ***************************************/ 
 Adafruit_MQTT_Publish CO = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Carbon Monoxide");
 Adafruit_MQTT_Publish O3 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Ozone");
-// Adafruit_MQTT_Publish NO2 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Nitrogen Dioxide");
 Adafruit_MQTT_Publish PM = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Particulate Matter");
 Adafruit_MQTT_Publish CO2 = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/Carbon Dioxide");
+/****************************** END Adafruit.io Feeds ***************************************/ 
 
-// Constants & variables
-
-//******* Variables for MQTT **********//
-unsigned long last;
-unsigned long lastMinute;
-// END  Variables for MQTT **********//
-
-//******* Variables for OLED **********//
-#define OLED_RESET A0
-Adafruit_SSD1306 display(OLED_RESET);
-
-char currentDateTime[25], currentTime[9];
-bool buttonState;
-bool menuSwitch = false;
-int buttonPin = D2;
-// END  Variables for OLED **********//
-
-//******* Variables for NeoPixel **********//
-const int neo_pin = D3;
-const int PixelON = 0xFF00FF; // first pixel in magenta
-const int GoodAQ = 0x00FFFF; // pixel color cyan
-const int MedAQ = 0xFFFF00; // pixel color yellow
-const int PoorAQ = 0x8B0000; // pixel color red
-const int ErrorAQ = 0x9932CC; // pixel color purple
-
-#define PIXEL_PIN D3
-#define PIXEL_COUNT 12
-#define PIXEL_TYPE WS2812B
-
-Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
-// END  Variables for lightNeoPixel functions **********//
-
+// Constants & variables ********************************************************
 
 //******* M01_get_MQ9_data constants and variables for function **********//
 const int MQ9_Addr = 0x50; // Address for MQ9 I2C CO Sensor
@@ -153,34 +121,75 @@ float CO2ppm;
 float CO2Curve[3] = {2.602, ZERO_POINT_VOLTAGE, (REACTION_VOLTAGE/(2.602-3))};
 // END  Variables for M05_get_MG811_data function **********//
 
+//******* Variables for OLED **********//
+#define OLED_RESET A0
+Adafruit_SSD1306 display(OLED_RESET);
+char currentDateTime[25], currentTime[9];
+// END  Variables for OLED **********//
+
+//******* Variables for Button **********//
+int buttonPin = D2;
+bool buttonState;
+bool menuSwitch = false;
+//******* END Variables for Button **********//
+
+//******* Variables for NeoPixel **********//
+const int neo_pin = D3;
+const int PixelON = 0xFF00FF; // first pixel in magenta
+const int GoodAQ = 0x00FFFF; // pixel color cyan
+const int MedAQ = 0xFFFF00; // pixel color yellow
+const int PoorAQ = 0x8B0000; // pixel color red
+const int ErrorAQ = 0x9932CC; // pixel color purple
+
+#define PIXEL_PIN D3
+#define PIXEL_COUNT 12
+#define PIXEL_TYPE WS2812B
+
+Adafruit_NeoPixel pixel(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
+// END  Variables for lightNeoPixel functions **********//
+
+//******* Variables for MQTT **********//
+unsigned long last;
+unsigned long lastMinute;
+// END  Variables for MQTT **********//
+
+// END  Constants & variables ********************************************************
+
+// END  HEADER section ********************************************************
+
 
 void setup() 
 {
-  pinMode(buttonPin, INPUT_PULLDOWN);
-  pinMode(mgPin, INPUT);
+  pinMode(buttonPin, INPUT_PULLDOWN); //pin mode for button
+  pinMode(mgPin, INPUT); //pin mode for CO2 MG-811 sensor analog read
   Serial.begin(9600);
-
-  //request time sync from Particle Cloud
-  Particle.syncTime();
-  waitUntil(Particle.syncTimeDone);
-
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-  display.display();
-  delay(1000);
-  display.clearDisplay();
-  display.setRotation(0);
 
   //initialize I2C transmission
   Wire.begin();
   Wire.beginTransmission(MQ9_Addr);
   Wire.beginTransmission(MQ131_Addr);
+  Wire.beginTransmission(HM3301_Addr);
   Wire.write(0);
   Wire.endTransmission(true);
 
+  //initialize OLED display
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  delay(1000);
+  display.clearDisplay();
+  display.setRotation(0);
+  display.display();
+
+  //request time sync from Particle Cloud for OLED display
+  Particle.syncTime();
+  waitUntil(Particle.syncTimeDone);
+  Time.zone(-6); // set to mountain
+  
+  //removes latency from button click (enables quick switch from menu 1 to menu 2)
+  attachInterrupt(buttonPin, enableButton, RISING);
+
+  //initialize neopixels
   pixel.begin();
   pixel.show();
-
-  attachInterrupt(buttonPin, enableButton, RISING);
 }
 
 void loop() 
@@ -188,37 +197,37 @@ void loop()
 **************************************  MAIN LOOP  **********************************
 *************************************************************************************/
 {
-  //make sure neopixels are working
+  //light pixel 1 to indicate program running
   pixel.setPixelColor(0, PixelON);
-  pixel.setBrightness(80);
+  pixel.setBrightness(60);
   pixel.show();
   
-  //display 2 OLED menus with button
+  //switch between two OLED menus with button
   buttonState = digitalRead(buttonPin);
   if(buttonState)
-  {
+  {//switches from menu 1 to menu 2
     menuSwitch = !menuSwitch;
   }
 
-  displayMenu();
+  //display neopixel color key (menu 1) + gas concentration data (menu 2)
+  display_Data_OLED();
 
   //connect to Adafruit.io
   MQTT_connect();
   MQTT_ping();
 
-  //read and publish data to Adafruit.io "Gas Emissions" Dashboard
-  if(millis()-lastMinute > 30000) 
-  {
+  //read and publish data to Adafruit.io "Gas Emissions" dashboard every 30 seconds
+   if(millis()-lastMinute > 30000) 
+   {//read sensors to detect gas concentration 
+    light_Read_Sensors_Pixel();
     M01_get_MQ9_data();
     M02_get_MQ131_data();
-    // M03_GetGasConcentration_MakerIO_FINAL();
     M04_get_HM3301_data();
     M05_get_MG811_data();
     if(mqtt.Update()) 
-    {
+    {//publish gas concentration data to Adafruit feeds and dashboard
       CO.publish(COppm);
       O3.publish(O3ppm);
-      // NO2.publish(NO2PPMconc);
       PM.publish(HM3301_data2);
       CO2.publish(CO2ppm);
     }
@@ -226,10 +235,10 @@ void loop()
   } 
 
   //light neo pixels to visual gas concentrations (see color key on OLED)
-  light_MQ9_Pixel();
-  light_MQ131_Pixel();
-  light_HM3301_Pixel();
-    // createEventPayLoad(COppm,O3ppm);
+  light_CO_MQ9_Pixel();
+  light_O3_MQ131_Pixel();
+  light_PM_HM3301_Pixel();
+  light_CO2_MG811_Pixel();
 } //*********************************** END LOOP  *************************************
 
 void M01_get_MQ9_data()
@@ -263,10 +272,11 @@ void M02_get_MQ131_data()
   // raw_adc msb, raw_adc lsb
   MQ131_data[0] = Wire.read();
   MQ131_data[1] = Wire.read();
-  // Convert the data to 12-bits
+  //convert to 12 bits - combine bytes
   MQ131_raw_adc = ((MQ131_data[0] & 0x0F) * 256) + MQ131_data[1];
+  //voltage conversion
   Vacd1 = MQ131_raw_adc*(3.3/4096);
-  // Formula to convert raw data to PPM (parts per million)
+  // Formulas to convert raw data from combined bytes to PPM (parts per million)
   RsRo = (20.0/0.18)*(3.3-Vacd1)/Vacd1;
   O3ppm = pow(10,-log(RsRo)+1.48);
   Serial.printf("Ozone: %0.2f ppm\n", O3ppm);
@@ -307,18 +317,20 @@ void M04_get_HM3301_data()
 {
   // Start I2C transmission
   Wire.beginTransmission(HM3301_Addr);
-  // Wire.write(0x81);
   Wire.endTransmission(false);
   Wire.requestFrom(HM3301_Addr, 29, true);
+  //stores all data from 29 bytes into array
   for(int i=0;i<29;i++)
   {
       HM3301_data[i] = Wire.read();
   }
+  //bit shifting to combine bytes
   for(int n=0;n<29;n=n+2)
   {
     HM3301_adc = (HM3301_data[n] << 8) | HM3301_data[n+1];
     // Serial.printf("Data: %i  Particulate Matter: %i\n", n+1, HM3301_adc);
   }
+  //use pointer to access single byte to get PM2.5 data from sensor 
   pointer = &HM3301_data[13];
   HM3301_data2 = *pointer;
   Serial.printf("Particulate Matter: %i\n", HM3301_data2);
@@ -326,12 +338,15 @@ void M04_get_HM3301_data()
 
 void  M05_get_MG811_data()
 {
+  //read sensor data and get sensor voltage for base 0 CO2 level 
   raw_MG = MGRead(mgPin);
+  //convert raw data to PPM
   CO2ppm = MGGetPercentage(raw_MG,CO2Curve);
   Serial.printf("CO2 conc = %0.2f, Voltage = %0.2f \n", CO2ppm, raw_MG);
 }
 
-float MGRead(int mgPin)
+//read sensor data and get sensor voltage for base 0 CO2 level 
+float MGRead(int mgPin) 
 {
   float v = 0;
   for(int i=0; i<READ_SAMPLE_TIMES; i++)
@@ -343,6 +358,7 @@ float MGRead(int mgPin)
   return v;
 }
 
+//convert raw data from MG-811 CO2 sensor to PPM
 int MGGetPercentage(float volts, float *pcurve)
 {
   if((volts/DC_GAIN) >= ZERO_POINT_VOLTAGE)
@@ -355,100 +371,113 @@ int MGGetPercentage(float volts, float *pcurve)
   }
 }
 
-void  light_MQ9_Pixel()
+//blink neopixel to indicate reading gas sensors
+void  light_Read_Sensors_Pixel()
 {
-  // float bri;
+  for(int i=0; i<4; i++)
+  {
+    pixel.setPixelColor(0, PixelON);
+    pixel.show();
+    delay(120);
+    pixel.clear();
+    pixel.show();
+    delay(120);
+  }
+}
 
+void  light_CO_MQ9_Pixel()
+{
   if(COppm < 480.0)
   {
-    // bri = map(COppm, 10.0, 480.0, 10.0, 160.0);
-    pixel.setPixelColor(2, GoodAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(3, GoodAQ);
     pixel.show();
   }
 
   if(COppm > 480.0 && COppm < 650.0)
   {
-    // bri = map(COppm, 480.0, 550.0, 10.0, 160.0);
-    pixel.setPixelColor(2, MedAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(3, MedAQ);
     pixel.show();
   }
 
   if(COppm > 650.0)
   {
-    // bri = map(COppm, 650.0, 750.0, 10.0, 160.0);
-    pixel.setPixelColor(2, PoorAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(3, PoorAQ);
     pixel.show();
   }
 }
 
-void  light_MQ131_Pixel()
+void  light_O3_MQ131_Pixel()
 {
-  // float bri;
-
   if(O3ppm < 1.0)
   {
-    // bri = map(O3ppm, 0.0, 1.0, 10.0, 160.0);
-    pixel.setPixelColor(4, GoodAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(5, GoodAQ);
     pixel.show();
   }
 
     if(O3ppm > 1.0 && O3ppm < 5.0)
   {
-    // bri = map(O3ppm, 1.0, 5.0, 10.0, 160.0);
-    pixel.setPixelColor(4, MedAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(5, MedAQ);
     pixel.show();
   }
 
   if(O3ppm > 5.0)
   {
-    // bri = map(O3ppm, 5.0, 10.0, 10.0, 160.0);
-    pixel.setPixelColor(4, PoorAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(5, PoorAQ);
     pixel.show();
   }
 }
 
-void  light_HM3301_Pixel()
+void  light_PM_HM3301_Pixel()
 {
-  // int bri;
-
   if(HM3301_data2 < 10)
   {
-    // bri = map(HM3301_data2, 0, 10, 10, 160);
-    pixel.setPixelColor(6, GoodAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(7, GoodAQ);
     pixel.show();
   }
 
     if(HM3301_data2 > 10 && HM3301_data2 < 20)
   {
-    // bri = map(HM3301_data2, 10, 20, 10, 160);
-    pixel.setPixelColor(6, MedAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(7, MedAQ);
     pixel.show();
   }
 
   if(HM3301_data2 > 20)
   {
-    // bri = map(HM3301_data2, 20, 1000, 10, 160);
-    pixel.setPixelColor(6, PoorAQ);
-    pixel.setBrightness(80);
+    pixel.setPixelColor(7, PoorAQ);
     pixel.show();
   }
 }
 
-void  displayMenu()
+void  light_CO2_MG811_Pixel()
+{
+  if(CO2ppm < 450)
+  {
+    pixel.setPixelColor(9, GoodAQ);
+    pixel.show();
+  }
+
+    if(CO2ppm > 450 && CO2ppm < 1000)
+  {
+    pixel.setPixelColor(9, MedAQ);
+    pixel.show();
+  }
+
+  if(CO2ppm > 1000)
+  {
+    pixel.setPixelColor(9, PoorAQ);
+    pixel.show();
+  }
+
+}
+
+//OLED menu 1 displays color key for neopixels, OLED menu 2 displays timestamp and gas concentrations
+void  display_Data_OLED()
 {
   getTime();
   display.setTextSize(1);
   display.setTextColor(WHITE);
   display.setCursor(0,0);
-  switchMenu();
+  displayMenu();
 }
 
 void  getTime()
@@ -466,19 +495,20 @@ void  getTime()
   // Serial.printf("Time is %s\n", currentTime);
 }
 
-void  switchMenu()
+//button switches menu on OLED
+void  displayMenu()
 {
   if(menuSwitch)
   {
     display.clearDisplay();
     display.printf("Time: %s\n", currentTime);
+    display.printf("\n");
     display.printf("clockwise from pink:\n");
     display.printf("1- reading sensors..\n");
     display.printf("2- CO: %0.2fppm\n", COppm);
     display.printf("3- O3: %0.2fppm\n", O3ppm);
     display.printf("4- PM2.5: %i\n", HM3301_data2);
-    display.printf("5- NO2: \n");
-    display.printf("6- CO2: %0.2fppm\n", CO2ppm);
+    display.printf("5- CO2: %0.2fppm\n", CO2ppm);
     display.display();
   }
   else if(!menuSwitch)
@@ -497,6 +527,7 @@ void  switchMenu()
     // Serial.printf("menu: %i\n", menuSwitch);
 }
 
+//function used in interrupt in setup to remove latency from button functionality
 void  enableButton()
 {
   buttonState = true;
@@ -525,6 +556,7 @@ void MQTT_connect()
   Serial.println("MQTT Connected!");
 }
 
+//function pings to communicate to Adafruit.io
 void MQTT_ping()
 {
     if ((millis()-last)>60000) 
@@ -538,14 +570,3 @@ void MQTT_ping()
     last = millis();
   }
 }
-
-// void  createEventPayLoad(float COppm, float O3ppm)
-// {
-//   JsonWriterStatic<256> jw;
-//   {
-//     JsonWriterAutoObject obj(&jw);
-//     jw.insertKeyValue("Ozone", O3ppm);
-//     jw.insertKeyValue("Carbon Monoxide", COppm);
-//   }
-//   Particle.publish("gas-emissions", jw.getBuffer(), PRIVATE);
-// }
