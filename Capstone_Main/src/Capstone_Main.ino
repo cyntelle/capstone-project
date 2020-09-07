@@ -418,19 +418,19 @@ void  light_CO_MQ9_Pixel() //3 O'CLOCK NEOPIXEL
 
 void  light_O3_MQ131_Pixel() //5 O'CLOCK NEOPIXEL
 {
-  if(O3ppm < 1.0) //GOOD AIR QUALITY
+  if(O3ppm < 0.08) //GOOD AIR QUALITY
   {
     pixel.setPixelColor(5, GoodAQ);
     pixel.show();
   }
 
-    if(O3ppm > 1.0 && O3ppm < 5.0) //MODERATE AIR QUALITY
+    if(O3ppm > 0.08 && O3ppm < 0.2) //MODERATE AIR QUALITY
   {
     pixel.setPixelColor(5, ModAQ);
     pixel.show();
   }
 
-  if(O3ppm > 5.0) //HAZARDOUS AIR QUALITY
+  if(O3ppm > 0.2) //HAZARDOUS AIR QUALITY
   {
     pixel.setPixelColor(5, HazardAQ);
     pixel.show();
@@ -439,19 +439,19 @@ void  light_O3_MQ131_Pixel() //5 O'CLOCK NEOPIXEL
 
 void  light_PM_HM3301_Pixel() //7 O'CLOCK NEOPIXEL
 {
-  if(HM3301_data2 < 10) //GOOD AIR QUALITY
+  if(HM3301_data2 < 20) //GOOD AIR QUALITY
   {
     pixel.setPixelColor(7, GoodAQ);
     pixel.show();
   }
 
-  if(HM3301_data2 > 10 && HM3301_data2 < 20) //MODERATE AIR QUALITY
+  if(HM3301_data2 > 20 && HM3301_data2 < 35) //MODERATE AIR QUALITY
   {
     pixel.setPixelColor(7, ModAQ);
     pixel.show();
   }
 
-  if(HM3301_data2 > 20) //HAZARDOUS AIR QUALITY
+  if(HM3301_data2 > 35) //HAZARDOUS AIR QUALITY
   {
     pixel.setPixelColor(7, HazardAQ);
     pixel.show();
