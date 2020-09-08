@@ -16,6 +16,7 @@
  * Author: Cyntelle Renteria & Ted Fites
  * Date: 8/23/20
  * Modifications:
+ * 9/8/20 CR updated M01_get_MQ9_data with calculcation for correct CO values
  * 9/5/20 CR cleaned up code and added documentation (comments) throughout main driver program
  * 9/4/20 TF/CR attempted gas detection for NO2 sensor at Alvarado Transportation Center, resulted in damage to sensor
  * in an attempt to test circuit and code. At present, no successful readings were taken. Sensor is defunct. Function is
@@ -72,6 +73,8 @@ const float argonVOLT = 3.3; // ARGON VOLTAGE
 const int MQ9_Addr = 0x50; // Address for MQ9 I2C CO Sensor
 unsigned int MQ9_data[2];
 int MQ9_raw_adc = 0;
+float MQ9_Vadc1;
+float MQ9_RsRo;
 float COppm = 0.0;
 // END  Variables for M01_get_MQ9_data function **********//
 
@@ -79,8 +82,8 @@ float COppm = 0.0;
 const int MQ131_Addr = 0x51; // Address for MQ131 I2C Ozone Sensor
 unsigned int MQ131_data[2];
 int MQ131_raw_adc = 0;
-float Vadc1;
-float RsRo;
+float MQ131_Vadc1;
+float MQ131_RsRo;
 float O3ppm = 0.0;
 // END  Variables for M02_get_MQ131_data function **********//
 
@@ -266,9 +269,12 @@ void M01_get_MQ9_data() //CARBON MONOXIDE
   MQ9_data[1] = Wire.read();
   // Convert the data to 12-bits
   MQ9_raw_adc = ((MQ9_data[0] & 0x0F) * 256) + MQ9_data[1]; //8 bits + 4 bits
+  //voltage conversion
+  MQ9_Vadc1 = MQ9_raw_adc*(argonVOLT/argonRES); //(ARGON required voltage/ARGON resolution)
   //Formula to convert raw data to PPM (parts per million) per BR
-  COppm = (1000.0 / argonRES) * MQ9_raw_adc + 10.0;
-  // Serial.printf("Carbon Monoxide: %0.2fppm\n", COppm);
+  MQ9_RsRo = (1/1.55)*((1.5-MQ9_Vadc1)/MQ9_Vadc1)*10.0;
+  COppm = pow(10,-log(MQ9_RsRo)+1.48);  
+  Serial.printf("Carbon Monoxide: %0.2fppm\n", COppm);
 }
 
 void M02_get_MQ131_data() //OZONE
@@ -285,10 +291,10 @@ void M02_get_MQ131_data() //OZONE
   //convert to 12 bits - combine bytes
   MQ131_raw_adc = ((MQ131_data[0] & 0x0F) * 256) + MQ131_data[1]; //8 bits + 4 bits
   //voltage conversion
-  Vadc1 = MQ131_raw_adc*(argonVOLT/argonRES); //(ARGON required voltage/ARGON resolution)
+  MQ131_Vadc1 = MQ131_raw_adc*(argonVOLT/argonRES); //(ARGON required voltage/ARGON resolution)
   // Formulas to convert raw data from combined bytes to PPM (parts per million) per BR
-  RsRo = (20.0/0.18)*(argonVOLT-Vadc1)/Vadc1;
-  O3ppm = pow(10,-log(RsRo)+1.48);
+  MQ131_RsRo = (20.0/0.18)*(argonVOLT-MQ131_Vadc1)/MQ131_Vadc1;
+  O3ppm = pow(10,-log(MQ131_RsRo)+1.48);
   // Serial.printf("Ozone: %0.2f ppm\n", O3ppm);
 }
 
