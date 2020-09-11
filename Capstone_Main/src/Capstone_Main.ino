@@ -123,7 +123,7 @@ float raw_MG;
 float CO2ppm;
 
 #define DC_GAIN (8.5) //define the DC gain of amplifier
-#define ZERO_POINT_VOLTAGE (0.3176) //define the output of the sensor in volts when the concentration of CO2 is 400PPM
+#define ZERO_POINT_VOLTAGE (0.3023) //define the output of the sensor in volts when the concentration of CO2 is 400PPM
 #define REACTION_VOLTAGE (0.030) //define the voltage drop of the sensor when move the sensor from air into 1000PPM CO2
 #define READ_SAMPLE_INTERVAL (50) //define how many samples you are going to take in normal operation
 #define READ_SAMPLE_TIMES (5) //define the time interval(in milisecond) between each samples in 
@@ -167,6 +167,7 @@ unsigned long lastMinute;
 
 // END  HEADER section ********************************************************
 
+// SYSTEM_MODE(SEMI_AUTOMATIC);
 
 void setup() 
 {
@@ -212,7 +213,7 @@ void loop()
 {
   //1): light pixel 1 to indicate program running
   pixel.setPixelColor(0, PixelON);
-  pixel.setBrightness(60);
+  pixel.setBrightness(10);
   pixel.show();
   
   //2): switch between two OLED menus with button
@@ -231,7 +232,7 @@ void loop()
   MQTT_ping();
 
   //4): read and publish gas concentration data to Adafruit.io "Gas Emissions" dashboard every 30 seconds
-   if(millis()-lastMinute > 30000) 
+   if(millis()-lastMinute > 15000) 
    {//read gas sensors to detect gas concentration 
     light_Read_Sensors_Pixel();
     M01_get_MQ9_data();
@@ -240,10 +241,10 @@ void loop()
     M05_get_MG811_data();
     if(mqtt.Update()) 
     {//publish gas concentration data to Adafruit feeds and dashboard
-      CO.publish(COppm);
-      O3.publish(O3ppm);
-      PM.publish(HM3301_data2);
-      CO2.publish(CO2ppm);
+    CO.publish(COppm);
+    O3.publish(O3ppm);
+    PM.publish(HM3301_data2);
+    CO2.publish(CO2ppm);
     }
     lastMinute = millis();
   } 
@@ -403,19 +404,19 @@ void  light_Read_Sensors_Pixel() // 12 O'CLOCK NEOPIXEL
 
 void  light_CO_MQ9_Pixel() //3 O'CLOCK NEOPIXEL
 {
-  if(COppm < 480.0) //GOOD AIR QUALITY
+  if(COppm < 10.0) //GOOD AIR QUALITY
   {
     pixel.setPixelColor(3, GoodAQ);
     pixel.show();
   }
 
-  if(COppm > 480.0 && COppm < 650.0) //MODERATE AIR QUALITY
+  if(COppm > 10.0 && COppm < 100.0) //MODERATE AIR QUALITY
   {
     pixel.setPixelColor(3, ModAQ);
     pixel.show();
   }
 
-  if(COppm > 650.0) //HAZARDOUS AIR QUALITY
+  if(COppm > 100.0) //HAZARDOUS AIR QUALITY
   {
     pixel.setPixelColor(3, HazardAQ);
     pixel.show();
@@ -512,8 +513,8 @@ void  getTime() //formats particle time on OLED
 
 void  displayMenu()
 {//menuSwitch conditions change menus on OLED
-  if(menuSwitch) 
-  {//toggles ON menu 2 once button is clicked
+ if(menuSwitch) 
+ {//toggles ON menu 2 once button is clicked
     display.clearDisplay();
     display.printf("Time: %s\n", currentTime);
     display.printf("\n");
@@ -524,21 +525,21 @@ void  displayMenu()
     display.printf("4- PM2.5: %i\n", HM3301_data2);
     display.printf("5- CO2: %0.2fppm\n", CO2ppm);
     display.display();
+ }
+ else if(!menuSwitch)
+ {//toggles ON menu 1 by default once program is run
+    display.clearDisplay();
+    display.printf("Air Quality Color Key\n");
+    display.printf("\n");
+    display.printf("blue:    GOOD\n");
+    display.printf("\n");
+    display.printf("yellow:  MODERATE\n");
+    display.printf("\n");
+    display.printf("red:     HAZARDOUS\n");
+    display.display();  
   }
-  else if(!menuSwitch)
-  {//toggles ON menu 1 by default once program is run
-      display.clearDisplay();
-      display.printf("Air Quality Color Key\n");
-      display.printf("\n");
-      display.printf("blue:    GOOD\n");
-      display.printf("\n");
-      display.printf("yellow:  MODERATE\n");
-      display.printf("\n");
-      display.printf("red:     HAZARDOUS\n");
-      display.display();  
-  }
-    // Serial.printf("button state: %i\n", buttonState);
-    // Serial.printf("menu: %i\n", menuSwitch);
+//     // Serial.printf("button state: %i\n", buttonState);
+//     // Serial.printf("menu: %i\n", menuSwitch);
 }
 
 void  enableButton()
@@ -571,7 +572,7 @@ void MQTT_connect()
 
 void MQTT_ping()
 {//function pings to communicate to Adafruit.io
-    if ((millis()-last)>60000) 
+    if ((millis()-last)>30000) 
   {
     Serial.printf("Pinging MQTT \n");
     if(! mqtt.ping()) 
